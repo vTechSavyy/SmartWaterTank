@@ -1,0 +1,24 @@
+{
+  "name": "http-server",
+  "version": "1.0.0",
+  "description": "Simple HTTP server for the arduino esp8266 client",
+  "main": "index.js",
+  "scripts": {
+    "server": "node server",
+    "devserver": "nodemon server",
+    "client": "npm start --prefix client",
+    "dev": "concurrently \" npm run devserver\"  \"npm run client\" ",
+    "start": "node server"
+  },
+  "author": "Savio Pereira",
+  "license": "ISC",
+  "dependencies": {
+    "express": "^4.17.1",
+    "firebase-admin": "^8.12.1",
+    "moment": "^2.24.0",
+    "mongoose": "^5.8.11"
+  },
+  "devDependencies": {
+    "nodemon": "^2.0.2"
+  }
+}
