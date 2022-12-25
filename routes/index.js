@@ -3,7 +3,7 @@ const router = express.Router();
 const moment = require('moment');
 const fs = require('fs');
 
-const ESP8266_FILE_NAME = "esp8266_waterproof_sensor_data.txt";
+// const ESP8266_FILE_NAME = "esp8266_waterproof_sensor_data.txt";
 
 // Params: 
 var SENSOR_HEIGHT_TANK_1 = 125.0;  // cms
@@ -39,11 +39,11 @@ var pump_1_status = 0;
 var pump_2_status = 0;
 var wifi_ssid = "";
 
-const fd = fs.openSync(ESP8266_FILE_NAME, 'w');
-var file_pos = 0
+// const fd = fs.openSync(ESP8266_FILE_NAME, 'w');
+// var file_pos = 0
 
 // Initialize the data array: 
-fs.writeSync(fd, "[", file_pos++, 'utf8');
+// fs.writeSync(fd, "[", file_pos++, 'utf8');
 
 router.post("/esp8266data", (req, res) => {
 
