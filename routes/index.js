@@ -210,6 +210,7 @@ router.post("/commands", (req, res) => {
     if (time_diff_in_secs > 15) {
         success = false;
         msg += " Esp8266 board appears to NOT be connected to WiFi";
+        console.log(" Esp8266 not connected!")
     } else {
 
         if (req.body.pump_1) {

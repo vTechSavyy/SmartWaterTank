@@ -44,6 +44,7 @@ import org.json.JSONException;
 import org.json.JSONObject;
 
 import java.util.Calendar;
+import java.util.HashMap;
 
 
 /**
@@ -146,14 +147,21 @@ public class SupervisorFragment extends Fragment {
         mTankSwitch = rootView.findViewById(R.id.tank_switch);
         mTankSwitch.setOnCheckedChangeListener(new CompoundButton.OnCheckedChangeListener() {
             @Override
-            public void onCheckedChanged(CompoundButton buttonView, boolean isChecked) {
+            public void onCheckedChanged(CompoundButton buttonView, final boolean isChecked) {
+
+                final String idxStr = String.valueOf(getArguments().getInt(FRAG_INDEX_KEY));
+                JSONObject cmd_req = new JSONObject(new HashMap<String, String>() {
+                    {
+                        put("pump_" + idxStr, isChecked ? "WT_ON" : "WT_OFF");
+                    }
+                });
 
                 // Send http request to server:
                 // Start progressbar:
                 // Stop progressbar on response from HTTP req:
                 if (isChecked) {
                     mSwitchRequestProgressBar.setVisibility(View.VISIBLE);
-                    pumpActuationRequest = new JsonObjectRequest(Request.Method.POST, ACTUATION_URL, null, new Response.Listener<JSONObject>() {
+                    pumpActuationRequest = new JsonObjectRequest(Request.Method.POST, ACTUATION_URL, cmd_req, new Response.Listener<JSONObject>() {
                         @Override
                         public void onResponse(JSONObject response) {
                                 Log.i(TAG, "onResponse: Pump actuation. Response completed! ");
@@ -175,7 +183,7 @@ public class SupervisorFragment extends Fragment {
                 else {
                     mSwitchRequestProgressBar.setVisibility(View.VISIBLE);
 
-                    pumpActuationRequest = new JsonObjectRequest(Request.Method.POST, ACTUATION_URL, null, new Response.Listener<JSONObject>() {
+                    pumpActuationRequest = new JsonObjectRequest(Request.Method.POST, ACTUATION_URL, cmd_req, new Response.Listener<JSONObject>() {
                         @Override
                         public void onResponse(JSONObject response) {
                             Log.i(TAG, "onResponse: Pump actuation. Response completed! ");
@@ -276,7 +284,7 @@ public class SupervisorFragment extends Fragment {
     Runnable mStatusChecker = new Runnable() {
         @Override
         public void run() {
-            Log.i(TAG, " Adding volley request to queue");
+//            Log.i(TAG, " Adding volley request to queue");
             VolleySingleton.getInstance(getActivity()).addToRequestQueue(tankStatusRequest);
             UIThreaHandler.postDelayed(mStatusChecker, statusInterval);
         }
