@@ -1,0 +1,18 @@
+<resources>
+    <string name="app_name">AutomaticWaterTank</string>
+    <!-- Strings related to login -->
+    <string name="percent_sign">%</string>
+    <string name="default_level">50 %</string>
+    <string name="action_login">Login</string>
+    <string name="action_sign_in_short">Sign in</string>
+    <string name="welcome">"Welcome !"</string>
+    <string name="server_not_found">Unable to find server. Check Internet connection</string>
+    <string name="login_success">"Login Successful"</string>
+    <string name="tank_switch_off_txt">OFF</string>
+    <string name="tank_switch_on_txt">ON</string>
+
+    <string name="channel_name">Events</string>
+    <string name="channel_description">Events about Pumps switching ON or OFF</string>
+
+    <string name="auto_start_checkbox_label">Timed automatic daily start</string>
+</resources>
