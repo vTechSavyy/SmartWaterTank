@@ -68,12 +68,12 @@ router.post("/esp8266data", (req, res) => {
     // Print to screen: 
     console.log(" Tank #1 level is: ", water_level_tank_1);
     console.log(" Tank #2 level is: ", water_level_tank_2);
-    console.log(" Tank #3 level is: ", water_level_tank_3);
+    // console.log(" Tank #3 level is: ", water_level_tank_3);
     console.log(" Pump #1  is: ", pump_1_status ? "ON" : "OFF");
     console.log(" Pump #2  is: ", pump_2_status ? "ON" : "OFF");
     // console.log(" Esp8266 is connected to : ", wifi_ssid);
-    // console.log(" Pump #1  command is: ", pump_1_command);
-    // console.log(" Pump #2  command is: ", pump_2_command);
+    console.log(" Pump #1  command is: ", pump_1_command);
+    console.log(" Pump #2  command is: ", pump_2_command);
     console.log(" --------------------------------------- ");
 
     res.status(200).json({ message: " ESP8266 data received" });

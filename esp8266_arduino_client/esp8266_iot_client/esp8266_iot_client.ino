@@ -23,11 +23,16 @@ const int PUMP_2_PIN = D6;
 const int trigPin_s1 = D1;
 const int echoPin_s1 = D2;
 
+const int trigPin_s2 = D3;
+const int echoPin_s2 = D4;
 
-RunningMedian buffer_s1 = RunningMedian(30);
+
+RunningMedian buffer_s1 = RunningMedian(20);
+RunningMedian buffer_s2 = RunningMedian(20);
 
 // Threads for actuation and data transmission: 
 Thread* data_transmission_thread = new Thread();
+Thread* actuation_command_thread = new Thread();
 Thread* param_request_thread = new Thread();
 
 // Declare the HTTP client:
@@ -38,16 +43,17 @@ String event_component, event_type;
 bool send_event_data_to_server;
 
 float water_level_tank_1;
+float water_level_tank_2;
 
-//const char* ssid     = "Airtel-B310-B566";         // The SSID (name) of the Wi-Fi network you want to connect to
-//const char* password = "********";             // The password of the Wi-Fi network
+//const char* ssid     = "Airtel-B310-B566";             // The SSID (name) of the Wi-Fi network you want to connect to
+//const char* password = "********";                     // The password of the Wi-Fi network
 
 const char* ssid     = "PereiraHome-Jio-2.4GHz";         // The SSID (name) of the Wi-Fi network you want to connect to
-const char* password = "******";             // The password of the Wi-Fi network
+const char* password = "JGAJSC84";                       // The password of the Wi-Fi network
 
-//String SERVER_BASE_URL = "http://automatic-water-tank.herokuapp.com";
+//String SERVER_BASE_URL = "https://plum-cockroach-gown.cyclic.app";
 
-String SERVER_BASE_URL = "http://192.168.1.13:3000";   // Local testing server
+String SERVER_BASE_URL = "http://192.168.29.224:3000";   // Local testing server
 
 
 // Callback function to setup the wifi connection: 
@@ -105,31 +111,33 @@ void transmissionCallback() {
 
     if (WiFi.status() == WL_CONNECTED) { 
 
-    http.begin(SERVER_BASE_URL + "/api/esp8266data");
-    http.addHeader("Content-Type", "application/json");
-
-    const int capacity = JSON_OBJECT_SIZE(5);
-    StaticJsonDocument<capacity> esp_data;
-
-    // Fill in the data: 
-    esp_data["water_level_tank_1"] = water_level_tank_1; //buffer_s1.getMedian();
-    esp_data["pump_1_status"] = digitalRead(PUMP_1_PIN);
-
-    String esp_data_str;
-    serializeJson(esp_data, esp_data_str);
-
-    int esp_data_res_code = http.POST(esp_data_str);
-
-//    if (esp_data_res_code > 0){
-//      Serial.println("Successful data transmission");
-//    }
-//    else {
-//      Serial.println("Failed to transmit");
-//      Serial.println(esp_data_res_code);
-//    }
-
-    //Todo: Check the response code:
-    http.end();  // Close connection
+      http.begin(SERVER_BASE_URL + "/api/esp8266data");
+      http.addHeader("Content-Type", "application/json");
+  
+      const int capacity = JSON_OBJECT_SIZE(5);
+      StaticJsonDocument<capacity> esp_data;
+  
+      // Fill in the data: 
+      esp_data["water_level_tank_1"] = buffer_s1.getMedian();
+      esp_data["pump_1_status"] = digitalRead(PUMP_1_PIN);
+      esp_data["water_level_tank_2"] = buffer_s2.getMedian();
+      esp_data["pump_2_status"] = digitalRead(PUMP_2_PIN);
+  
+      String esp_data_str;
+      serializeJson(esp_data, esp_data_str);
+  
+      int esp_data_res_code = http.POST(esp_data_str);
+  
+      if (esp_data_res_code > 0){
+        Serial.println("Successful data transmission");
+      }
+      else {
+        Serial.println("Failed to transmit");
+        Serial.println(esp_data_res_code);
+      }
+  
+      //Todo: Check the response code:
+      http.end();  // Close connection
     
    }
 
@@ -162,9 +170,51 @@ void paramRequestCallback() {
 
       SENSOR_HEIGHT_TANK_1 = params["SENSOR_HEIGHT_TANK_1"];
       LOWER_THRESH_TANK_1  = params["LOWER_THRESH_TANK_1"]; 
-      UPPER_THRESH_TANK_1  = params["UPPER_THRESH_TANK_1"];
-      
-         
+      UPPER_THRESH_TANK_1  = params["UPPER_THRESH_TANK_1"];     
+   }
+
+    http.end();  // Close connection
+    
+   }
+  
+}
+
+void actutationCommandCallback() {
+  
+  if (WiFi.status() == WL_CONNECTED) { 
+
+    Serial.println(" Actuation command callback");
+
+    http.begin(SERVER_BASE_URL + "/api/commands");
+
+    const int capacity = JSON_OBJECT_SIZE(3);
+    StaticJsonDocument<3*capacity> commands;
+
+    int command_res_code = http.GET();
+
+    //Check for the returning code
+    if (command_res_code > 0) { 
+        
+       // Deserialize the JSON document
+      DeserializationError error = deserializeJson(commands, http.getString());
+
+      // Test if parsing succeeds.
+      if (error) {
+        Serial.print("deserializeJson() failed: ");
+        Serial.println(error.c_str());
+        //return;
+      }
+
+      if (commands["pump_1_command"] == "WT_OFF" && digitalRead(PUMP_1_PIN) == LOW)
+      {
+        digitalWrite(PUMP_1_PIN, HIGH); 
+      }
+
+      if (commands["pump_1_command"] == "WT_ON" && digitalRead(PUMP_1_PIN) == HIGH)
+      {
+        Serial.println("Pump 1 command is WT_ON. Setting pin to low");
+        digitalWrite(PUMP_1_PIN, LOW); 
+      }   
    }
 
     http.end();  // Close connection
@@ -181,21 +231,34 @@ void setup() {
   Serial.println('\n');
 
   // Setup the wifi connection: 
-//  setupWifi();
+  setupWifi();
 
   pinMode(trigPin_s1, OUTPUT);
   pinMode(echoPin_s1, INPUT);
+
+  pinMode(trigPin_s2, OUTPUT);
+  pinMode(echoPin_s2, INPUT);
+
+  // Initialize the actuation pins:
+  pinMode(PUMP_1_PIN, OUTPUT);
+  pinMode(PUMP_2_PIN, OUTPUT);
+  
+  digitalWrite(PUMP_1_PIN, HIGH);
+  digitalWrite(PUMP_2_PIN, HIGH);
 
   // Initialize values: 
   event_component = "";
   event_type = "";
   send_event_data_to_server =false;
 
-//  data_transmission_thread->onRun(transmissionCallback);
-//  data_transmission_thread->setInterval(2000);  // milliseconds
+  data_transmission_thread->onRun(transmissionCallback);
+  data_transmission_thread->setInterval(2000);  // milliseconds
 //
 //  param_request_thread->onRun(paramRequestCallback);
 //  param_request_thread->setInterval(10000);  // milliseconds
+
+  actuation_command_thread->onRun(actutationCommandCallback);
+  actuation_command_thread->setInterval(1000);  // milliseconds
 
 }
 
@@ -203,23 +266,34 @@ void loop() {
 
   // put your main code here, to run repeatedly:
   water_level_tank_1 = triggerAndReadUltrasonicSensor(trigPin_s1, echoPin_s1, SENSOR_HEIGHT_TANK_1);
+  water_level_tank_2 = triggerAndReadUltrasonicSensor(trigPin_s2, echoPin_s2, SENSOR_HEIGHT_TANK_2);
 
   // Add sensor data to the buffers: 
   buffer_s1.add(water_level_tank_1);
+  buffer_s2.add(water_level_tank_2);
 
- 
-//  if(data_transmission_thread->shouldRun() && WiFi.status() == WL_CONNECTED) 
-//    data_transmission_thread->run();  
+  // Check if the pump actuators need to be turned off: 
+//  if (water_level_tank_1 > UPPER_THRESH_TANK_1)
+//  {
+//    digitalWrite(PUMP_1_PIN, LOW);
+//  }
+//
+//  if (water_level_tank_2 > UPPER_THRESH_TANK_2)
+//  {
+//    digitalWrite(PUMP_2_PIN, LOW);
+//  }
+  
+
+  if(data_transmission_thread->shouldRun() && WiFi.status() == WL_CONNECTED) 
+    data_transmission_thread->run();  
 //
 //  if(param_request_thread->shouldRun()&& WiFi.status() == WL_CONNECTED) 
 //    param_request_thread->run();
 
+  if(actuation_command_thread->shouldRun() && WiFi.status() == WL_CONNECTED) 
+    actuation_command_thread->run(); 
   
-  // Set sample rate to ~1Hz: 
-  delay(1000);
-
-  Serial.print(" Water level is : ");
-  Serial.println(water_level_tank_1);
-
+  // Set sample rate to ~10Hz: 
+  delay(50);
   
 }

@@ -66,7 +66,7 @@ public class SupervisorFragment extends Fragment {
     private JsonObjectRequest pumpActuationRequest;
 
     private Handler UIThreaHandler;
-    private static int statusInterval = 10000;  // milliseconds
+    private static int statusInterval = 5000;  // milliseconds
 
     private TextView mTitle;
     private TextView mAutoStartTimeDisplay;
@@ -225,6 +225,22 @@ public class SupervisorFragment extends Fragment {
                     GradientDrawable d1 = (GradientDrawable) ContextCompat.getDrawable(getActivity(), R.drawable.water_level_background_1);
                     d1.setGradientCenter(0.0f, (100.0f - Float.parseFloat(level)) / 100.0f);
                     SupervisorFragment.this.mTankLevel.setBackground(d1);
+
+                    int pump_status = response.getInt("pump_" + idxStr + "_status");
+
+                    if (pump_status == 1) {
+                        mTankSwitch.setChecked(true);
+                        mTankSwitch.setText(R.string.tank_switch_on_txt);
+                        mTankSwitch.setBackgroundColor(Color.argb(50, 0, 255, 0));
+                        mSwitchRequestProgressBar.setVisibility(View.INVISIBLE);
+                    }
+
+                    if (pump_status == 0) {
+                        mTankSwitch.setChecked(false);
+                        mTankSwitch.setText(R.string.tank_switch_off_txt);
+                        mTankSwitch.setBackgroundColor(Color.argb(50, 255, 0, 0));
+                        mSwitchRequestProgressBar.setVisibility(View.INVISIBLE);
+                    }
                 }
                 catch (JSONException e){
                     Log.e(TAG, "onResponse: JSON Exception " + e.toString() );
