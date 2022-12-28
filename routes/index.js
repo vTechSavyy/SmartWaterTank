@@ -8,11 +8,11 @@ const fs = require('fs');
 // Params: 
 var SENSOR_HEIGHT_TANK_1 = 125.0;  // cms
 var LOWER_THRESH_TANK_1 = 40.0;  // cms
-var UPPER_THRESH_TANK_1 = 103.0;  // cms
+var UPPER_THRESH_TANK_1 = 100.0;  // cms
 
 var SENSOR_HEIGHT_TANK_2 = 125.0;  // cms
 var LOWER_THRESH_TANK_2 = 40.0;  // cms
-var UPPER_THRESH_TANK_2 = 103.0;  // cms
+var UPPER_THRESH_TANK_2 = 100.0;  // cms
 
 var SENSOR_HEIGHT_TANK_3 = 200.0;  // cms
 

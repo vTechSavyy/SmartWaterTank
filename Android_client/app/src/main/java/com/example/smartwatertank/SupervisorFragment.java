@@ -56,8 +56,8 @@ public class SupervisorFragment extends Fragment {
     public static final String FRAG_NAME_KEY = "FragmentName";
     private static final String TAG = "SupervisorFragment";
 
-    private final String SERVER_URL = "http://192.168.29.224:3000";
-//    private final String SERVER_URL = "https://plum-cockroach-gown.cyclic.app";
+//    private final String SERVER_URL = "http://192.168.29.224:3000";
+    private final String SERVER_URL = "https://plum-cockroach-gown.cyclic.app";
 
     private final String STATUS_URL = SERVER_URL + "/api/status";
     private final String ACTUATION_URL = SERVER_URL + "/api/commands";
@@ -66,7 +66,7 @@ public class SupervisorFragment extends Fragment {
     private JsonObjectRequest pumpActuationRequest;
 
     private Handler UIThreaHandler;
-    private static int statusInterval = 5000;  // milliseconds
+    private static int statusInterval = 4000;  // milliseconds
 
     private TextView mTitle;
     private TextView mAutoStartTimeDisplay;

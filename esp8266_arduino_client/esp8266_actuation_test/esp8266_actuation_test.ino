@@ -5,9 +5,6 @@
 #include <RunningMedian.h>
 #include <Thread.h>
 
-// Declare all the global constants:
-float SENSOR_HEIGHT_TANK_1 = 125.0;   // cms  (measured from base of tank)
-float SENSOR_HEIGHT_TANK_2 = 125.0;   // cms  (measured from base of tank)
 
 // Define the pins for controlling the relays: 
 const int PUMP_1_PIN = D5;
@@ -27,6 +24,7 @@ RunningMedian buffer_s2 = RunningMedian(20);
 // Threads for actuation and data transmission: 
 Thread* data_transmission_thread = new Thread();
 Thread* actuation_command_thread = new Thread();
+Thread* param_request_thread = new Thread();
 
 // Declare the HTTP client:
 HTTPClient http;
@@ -38,31 +36,29 @@ bool send_event_data_to_server;
 float water_level_tank_1;
 float water_level_tank_2;
 
-/// WiFi Network info:
-const char* ssid_1     = "PEREIRA HOME";                   // The SSID (name) of the Wi-Fi network you want to connect to
-const char* password_1 = "****";                       // The password of the Wi-Fi network
+//const char* ssid     = "Airtel-B310-B566";             // The SSID (name) of the Wi-Fi network you want to connect to
+//const char* password = "********";                     // The password of the Wi-Fi network
 
-const char* ssid_2     = "PereiraHome-Jio-2.4GHz";         // The SSID (name) of the Wi-Fi network you want to connect to
-const char* password_2 = "****";                       // The password of the Wi-Fi network
+const char* ssid     = "PereiraHome-Jio-2.4GHz";         // The SSID (name) of the Wi-Fi network you want to connect to
+const char* password = "JGAJSC84";                       // The password of the Wi-Fi network
 
-/// Server names and URL's:
-String SERVER_BASE_URL     = "http://plum-cockroach-gown.cyclic.app";    // Deployment server
-//String SERVER_BASE_URL   = "http://192.168.1.21:3000";                  // Local testing server
+//String SERVER_BASE_URL = "https://plum-cockroach-gown.cyclic.app";
+
+String SERVER_BASE_URL = "http://192.168.29.224:3000";   // Local testing server
 
 
 // Callback function to setup the wifi connection: 
-bool setupWifi(const char* ssid, const char* password) {
+void setupWifi() {
 
   WiFi.begin(ssid, password);             // Connect to the network
-  Serial.print("Trying to connect to ");
+  Serial.print("Connecting to ");
   Serial.print(ssid); Serial.println(" ...");
 
   int i = 0;
-  while (WiFi.status() != WL_CONNECTED && i < 30) { // Wait for the Wi-Fi to connect
+  while (WiFi.status() != WL_CONNECTED) { // Wait for the Wi-Fi to connect
     delay(1000);
     Serial.print(++i); Serial.print(' ');
   }
-  Serial.println("  ");
 
   if (WiFi.status() == WL_CONNECTED) {
     Serial.println('\n');
@@ -75,13 +71,9 @@ bool setupWifi(const char* ssid, const char* password) {
     } else {
       Serial.println("Error setting up MDNS responder!");
     }
+  }
 
-    return true;
-  }
-  else
-  {
-    return false;
-  }
+  
 }
 
 
@@ -101,7 +93,7 @@ float triggerAndReadUltrasonicSensor(const int trigPin, const int echoPin, const
   // Calculate the distance:
   float distance= duration*0.034/2;
   // Calculate the water level (cms):
-  return SENSOR_HEIGHT - distance;
+  return distance;
 
 }
 
@@ -128,7 +120,7 @@ void transmissionCallback() {
       int esp_data_res_code = http.POST(esp_data_str);
   
       if (esp_data_res_code > 0){
-//        Serial.println("Successful data transmission");/
+        Serial.println("Successful data transmission");
       }
       else {
         Serial.println("Failed to transmit");
@@ -146,7 +138,7 @@ void actutationCommandCallback() {
   
   if (WiFi.status() == WL_CONNECTED) { 
 
-//    Serial.println(" Actuation command callback");/
+    Serial.println(" Actuation command callback");
 
     http.begin(SERVER_BASE_URL + "/api/commands");
 
@@ -175,18 +167,9 @@ void actutationCommandCallback() {
 
       if (commands["pump_1_command"] == "WT_ON" && digitalRead(PUMP_1_PIN) == HIGH)
       {
+        Serial.println("Pump 1 command is WT_ON. Setting pin to low");
         digitalWrite(PUMP_1_PIN, LOW); 
-      } 
-
-      if (commands["pump_2_command"] == "WT_OFF" && digitalRead(PUMP_2_PIN) == LOW)
-      {
-        digitalWrite(PUMP_2_PIN, HIGH); 
-      }
-
-      if (commands["pump_2_command"] == "WT_ON" && digitalRead(PUMP_2_PIN) == HIGH)
-      {
-        digitalWrite(PUMP_2_PIN, LOW); 
-      } 
+      }   
    }
 
     http.end();  // Close connection
@@ -203,13 +186,7 @@ void setup() {
   Serial.println('\n');
 
   // Setup the wifi connection: 
-  bool wifi_res_1 = setupWifi(ssid_1, password_1);
-
-  if (wifi_res_1 == false)
-  {
-    bool wifi_res_2 = setupWifi(ssid_2, password_2);
-  }
-
+//  setupWifi();/
 
   pinMode(trigPin_s1, OUTPUT);
   pinMode(echoPin_s1, INPUT);
@@ -224,53 +201,27 @@ void setup() {
   digitalWrite(PUMP_1_PIN, HIGH);
   digitalWrite(PUMP_2_PIN, HIGH);
 
-  // Initialize values: 
-  event_component = "";
-  event_type = "";
-  send_event_data_to_server =false;
-
-  data_transmission_thread->onRun(transmissionCallback);
-  data_transmission_thread->setInterval(3000);  // milliseconds
-
-  actuation_command_thread->onRun(actutationCommandCallback);
-  actuation_command_thread->setInterval(1000);  // milliseconds
-
 }
 
 void loop() {
 
-  if (WiFi.status() != WL_CONNECTED)
-  {
-    bool wifi_res_1 = setupWifi(ssid_1, password_1);
+  // put your main code here
+  delay(10000);
 
-    if (wifi_res_1 == false)
-    {
-      bool wifi_res_2 = setupWifi(ssid_2, password_2);
-    }
-  }
+  Serial.println(" Starting motor #1 for 3 seconds");
+  digitalWrite(PUMP_1_PIN, LOW);
+  delay(3000);
+  digitalWrite(PUMP_1_PIN, HIGH);
 
-  // put your main code here, to run repeatedly:
-  water_level_tank_1 = triggerAndReadUltrasonicSensor(trigPin_s1, echoPin_s1, SENSOR_HEIGHT_TANK_1);
-  water_level_tank_2 = triggerAndReadUltrasonicSensor(trigPin_s2, echoPin_s2, SENSOR_HEIGHT_TANK_2);
+  delay(5000);
 
-  // Add sensor data to the buffers: 
-  buffer_s1.add(water_level_tank_1);
-  buffer_s2.add(water_level_tank_2);
+  Serial.println(" Starting motor #2 for 3 seconds");
+  digitalWrite(PUMP_2_PIN, LOW);
+  delay(3000);
+  digitalWrite(PUMP_2_PIN, HIGH);
 
-  // Transmit the current data to the server
-  if(data_transmission_thread->shouldRun() && WiFi.status() == WL_CONNECTED) 
-    data_transmission_thread->run();  
-
-  // Get the latest commands from the server
-  if(actuation_command_thread->shouldRun() && WiFi.status() == WL_CONNECTED) 
-    actuation_command_thread->run(); 
   
-  // Set sample rate to ~100Hz: 
-  delay(10);
-
-  Serial.print(" Water level tank #1 is ");
-  Serial.println(water_level_tank_1);
-
-  Serial.print(" Water level tank #2 is ");
-  Serial.println(water_level_tank_2);
+  // Set sample rate to ~10Hz: 
+  delay(5000);
+  
 }
