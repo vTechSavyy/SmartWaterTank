@@ -1,9 +1,6 @@
 const express = require("express");
 const router = express.Router();
 const moment = require('moment');
-const fs = require('fs');
-
-// const ESP8266_FILE_NAME = "esp8266_waterproof_sensor_data.txt";
 
 // Params: 
 var SENSOR_HEIGHT_TANK_1 = 125.0;  // cms
@@ -39,11 +36,6 @@ var pump_1_status = 0;
 var pump_2_status = 0;
 var wifi_ssid = "";
 
-// const fd = fs.openSync(ESP8266_FILE_NAME, 'w');
-// var file_pos = 0
-
-// Initialize the data array: 
-// fs.writeSync(fd, "[", file_pos++, 'utf8');
 
 router.post("/esp8266data", (req, res) => {
 
@@ -71,7 +63,7 @@ router.post("/esp8266data", (req, res) => {
     // console.log(" Tank #3 level is: ", water_level_tank_3);
     console.log(" Pump #1  is: ", pump_1_status ? "ON" : "OFF");
     console.log(" Pump #2  is: ", pump_2_status ? "ON" : "OFF");
-    // console.log(" Esp8266 is connected to : ", wifi_ssid);
+    console.log(" Esp8266 is connected to : ", wifi_ssid);
     console.log(" Pump #1  command is: ", pump_1_command);
     console.log(" Pump #2  command is: ", pump_2_command);
     console.log(" --------------------------------------- ");

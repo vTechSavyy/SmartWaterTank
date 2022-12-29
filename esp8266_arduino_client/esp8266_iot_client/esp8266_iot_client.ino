@@ -4,6 +4,8 @@
 #include <ArduinoJson.h>        // Include the JSON formatting library
 #include <RunningMedian.h>
 #include <Thread.h>
+#include <Fetch.h>
+#include "config.h"
 
 // Declare all the global constants:
 float SENSOR_HEIGHT_TANK_1 = 125.0;   // cms  (measured from base of tank)
@@ -20,16 +22,13 @@ const int echoPin_s1 = D2;
 const int trigPin_s2 = D3;
 const int echoPin_s2 = D4;
 
-
+// Create running median filters for the two sensors
 RunningMedian buffer_s1 = RunningMedian(20);
 RunningMedian buffer_s2 = RunningMedian(20);
 
 // Threads for actuation and data transmission: 
 Thread* data_transmission_thread = new Thread();
 Thread* actuation_command_thread = new Thread();
-
-// Declare the HTTP client:
-HTTPClient http;
 
 // Declare variables for the events: 
 String event_component, event_type;
@@ -38,15 +37,8 @@ bool send_event_data_to_server;
 float water_level_tank_1;
 float water_level_tank_2;
 
-/// WiFi Network info:
-const char* ssid_1     = "PEREIRA HOME";                   // The SSID (name) of the Wi-Fi network you want to connect to
-const char* password_1 = "****";                       // The password of the Wi-Fi network
-
-const char* ssid_2     = "PereiraHome-Jio-2.4GHz";         // The SSID (name) of the Wi-Fi network you want to connect to
-const char* password_2 = "****";                       // The password of the Wi-Fi network
-
-/// Server names and URL's:
-String SERVER_BASE_URL     = "http://plum-cockroach-gown.cyclic.app";    // Deployment server
+// Server names and URL's:
+String SERVER_BASE_URL     = "https://plum-cockroach-gown.cyclic.app";    // Deployment server
 //String SERVER_BASE_URL   = "http://192.168.1.21:3000";                  // Local testing server
 
 
@@ -110,9 +102,7 @@ void transmissionCallback() {
 
     if (WiFi.status() == WL_CONNECTED) { 
 
-      http.begin(SERVER_BASE_URL + "/api/esp8266data");
-      http.addHeader("Content-Type", "application/json");
-  
+//      Serial.println(" Data transmission callback");/
       const int capacity = JSON_OBJECT_SIZE(5);
       StaticJsonDocument<capacity> esp_data;
   
@@ -121,22 +111,22 @@ void transmissionCallback() {
       esp_data["pump_1_status"] = digitalRead(PUMP_1_PIN);
       esp_data["water_level_tank_2"] = buffer_s2.getMedian();
       esp_data["pump_2_status"] = digitalRead(PUMP_2_PIN);
+      esp_data["wifi_ssid"] = WiFi.SSID();
   
       String esp_data_str;
       serializeJson(esp_data, esp_data_str);
-  
-      int esp_data_res_code = http.POST(esp_data_str);
-  
-      if (esp_data_res_code > 0){
-//        Serial.println("Successful data transmission");/
-      }
-      else {
-        Serial.println("Failed to transmit");
-        Serial.println(esp_data_res_code);
-      }
-  
-      //Todo: Check the response code:
-      http.end();  // Close connection
+
+      RequestOptions options;
+      options.method = "POST";
+      options.headers["Content-Type"] = "application/json";
+      options.headers["Content-Length"] = strlen(esp_data_str.c_str());
+      options.fingerprint = SHA1_FINGERPRINT;
+      options.body = esp_data_str;
+
+      // Making the request
+      String DATA_POST_URL = SERVER_BASE_URL + "/api/esp8266data";
+      Response response = fetch(DATA_POST_URL.c_str(), options);
+//      Serial.println(response);/
     
    }
 
@@ -146,20 +136,22 @@ void actutationCommandCallback() {
   
   if (WiFi.status() == WL_CONNECTED) { 
 
-//    Serial.println(" Actuation command callback");/
+//      Serial.println(" Actuation command callback");/
+      RequestOptions options;
+      options.method = "GET";
+      options.fingerprint = SHA1_FINGERPRINT;
 
-    http.begin(SERVER_BASE_URL + "/api/commands");
+      // Making the request
+      String COMMAND_GET_URL = SERVER_BASE_URL + "/api/commands";
+      Response response = fetch(COMMAND_GET_URL.c_str(), options);
+//      Serial.println(response);/
 
-    const int capacity = JSON_OBJECT_SIZE(3);
-    StaticJsonDocument<3*capacity> commands;
+      const int capacity = JSON_OBJECT_SIZE(3);
+      StaticJsonDocument<3*capacity> commands;
 
-    int command_res_code = http.GET();
-
-    //Check for the returning code
-    if (command_res_code > 0) { 
         
        // Deserialize the JSON document
-      DeserializationError error = deserializeJson(commands, http.getString());
+      DeserializationError error = deserializeJson(commands, response.body);
 
       // Test if parsing succeeds.
       if (error) {
@@ -187,10 +179,6 @@ void actutationCommandCallback() {
       {
         digitalWrite(PUMP_2_PIN, LOW); 
       } 
-   }
-
-    http.end();  // Close connection
-    
    }
   
 }
@@ -268,9 +256,10 @@ void loop() {
   // Set sample rate to ~100Hz: 
   delay(10);
 
-  Serial.print(" Water level tank #1 is ");
-  Serial.println(water_level_tank_1);
-
-  Serial.print(" Water level tank #2 is ");
-  Serial.println(water_level_tank_2);
+  // Print the water levels for debugging
+//  Serial.print(" Water level tank #1 is ");
+//  Serial.println(water_level_tank_1);
+//
+//  Serial.print(" Water level tank #2 is ");
+//  Serial.println(water_level_tank_2);
 }
