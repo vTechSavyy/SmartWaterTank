@@ -205,6 +205,7 @@ void setup() {
 
 void loop() {
 
+  Serial.println("Inside main loop. 10 seconds to warm up");
   // put your main code here
   delay(10000);
 

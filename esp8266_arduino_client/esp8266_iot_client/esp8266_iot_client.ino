@@ -19,27 +19,26 @@ const int PUMP_2_PIN = D6;
 const int trigPin_s1 = D1;
 const int echoPin_s1 = D2;
 
-const int trigPin_s2 = D3;
-const int echoPin_s2 = D4;
+const int trigPin_s2 = D8;
+const int echoPin_s2 = D7;
 
 // Create running median filters for the two sensors
-RunningMedian buffer_s1 = RunningMedian(20);
-RunningMedian buffer_s2 = RunningMedian(20);
+RunningMedian buffer_s1 = RunningMedian(30);
+RunningMedian buffer_s2 = RunningMedian(30);
 
 // Threads for actuation and data transmission: 
 Thread* data_transmission_thread = new Thread();
 Thread* actuation_command_thread = new Thread();
 
 // Declare variables for the events: 
-String event_component, event_type;
-bool send_event_data_to_server;
+String wifi_ssid;
 
 float water_level_tank_1;
 float water_level_tank_2;
 
 // Server names and URL's:
-String SERVER_BASE_URL     = "https://plum-cockroach-gown.cyclic.app";    // Deployment server
-//String SERVER_BASE_URL   = "http://192.168.1.21:3000";                  // Local testing server
+String SERVER_BASE_URL     = "https://plum-cockroach-gown.cyclic.app";    // Deployment server//
+//String SERVER_BASE_URL   = "https://192.168.1.21:3000";                  // Local testing server//
 
 
 // Callback function to setup the wifi connection: 
@@ -68,6 +67,7 @@ bool setupWifi(const char* ssid, const char* password) {
       Serial.println("Error setting up MDNS responder!");
     }
 
+    wifi_ssid = ssid;
     return true;
   }
   else
@@ -111,7 +111,7 @@ void transmissionCallback() {
       esp_data["pump_1_status"] = digitalRead(PUMP_1_PIN);
       esp_data["water_level_tank_2"] = buffer_s2.getMedian();
       esp_data["pump_2_status"] = digitalRead(PUMP_2_PIN);
-      esp_data["wifi_ssid"] = WiFi.SSID();
+      esp_data["wifi_ssid"] = wifi_ssid;
   
       String esp_data_str;
       serializeJson(esp_data, esp_data_str);
@@ -160,22 +160,22 @@ void actutationCommandCallback() {
         //return;
       }
 
-      if (commands["pump_1_command"] == "WT_OFF" && digitalRead(PUMP_1_PIN) == LOW)
+      if (commands["pump_1_command"] == "OFF" && digitalRead(PUMP_1_PIN) == LOW)
       {
         digitalWrite(PUMP_1_PIN, HIGH); 
       }
 
-      if (commands["pump_1_command"] == "WT_ON" && digitalRead(PUMP_1_PIN) == HIGH)
+      if (commands["pump_1_command"] == "ON" && digitalRead(PUMP_1_PIN) == HIGH)
       {
         digitalWrite(PUMP_1_PIN, LOW); 
       } 
 
-      if (commands["pump_2_command"] == "WT_OFF" && digitalRead(PUMP_2_PIN) == LOW)
+      if (commands["pump_2_command"] == "OFF" && digitalRead(PUMP_2_PIN) == LOW)
       {
         digitalWrite(PUMP_2_PIN, HIGH); 
       }
 
-      if (commands["pump_2_command"] == "WT_ON" && digitalRead(PUMP_2_PIN) == HIGH)
+      if (commands["pump_2_command"] == "ON" && digitalRead(PUMP_2_PIN) == HIGH)
       {
         digitalWrite(PUMP_2_PIN, LOW); 
       } 
@@ -212,13 +212,8 @@ void setup() {
   digitalWrite(PUMP_1_PIN, HIGH);
   digitalWrite(PUMP_2_PIN, HIGH);
 
-  // Initialize values: 
-  event_component = "";
-  event_type = "";
-  send_event_data_to_server =false;
-
   data_transmission_thread->onRun(transmissionCallback);
-  data_transmission_thread->setInterval(3000);  // milliseconds
+  data_transmission_thread->setInterval(2000);  // milliseconds
 
   actuation_command_thread->onRun(actutationCommandCallback);
   actuation_command_thread->setInterval(1000);  // milliseconds
@@ -241,7 +236,7 @@ void loop() {
   water_level_tank_1 = triggerAndReadUltrasonicSensor(trigPin_s1, echoPin_s1, SENSOR_HEIGHT_TANK_1);
   water_level_tank_2 = triggerAndReadUltrasonicSensor(trigPin_s2, echoPin_s2, SENSOR_HEIGHT_TANK_2);
 
-  // Add sensor data to the buffers: 
+  // Add sensor data to the buffers:
   buffer_s1.add(water_level_tank_1);
   buffer_s2.add(water_level_tank_2);
 
@@ -254,9 +249,13 @@ void loop() {
     actuation_command_thread->run(); 
   
   // Set sample rate to ~100Hz: 
-  delay(10);
+  delay(100);
 
   // Print the water levels for debugging
+  Serial.print("Pump #1 status is");
+  Serial.println(digitalRead(PUMP_1_PIN));
+  Serial.print("Pump #2 status is");
+  Serial.println(digitalRead(PUMP_2_PIN));
 //  Serial.print(" Water level tank #1 is ");
 //  Serial.println(water_level_tank_1);
 //

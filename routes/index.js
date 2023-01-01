@@ -21,8 +21,8 @@ var SENSOR_HEIGHT_TANK_3 = 200.0;  // cms
 // var CLIENT_OVERRIDE_RECEIVED = true;
 // var system_mode = 0;
 
-var pump_1_command = "WT_OFF";
-var pump_2_command = "WT_OFF";
+var pump_1_command = "OFF";
+var pump_2_command = "OFF";
 
 // Date object: 
 let d = new Date();
@@ -32,9 +32,12 @@ var time_of_last_esp8266_ping = d.getTime();
 var water_level_tank_1 = 0.0;
 var water_level_tank_2 = 0.0;
 var water_level_tank_3 = 0.0;
-var pump_1_status = 0;
-var pump_2_status = 0;
+var pump_1_status = "OFF";
+var pump_2_status = "OFF";
 var wifi_ssid = "";
+
+const sleep = (ms) =>
+    new Promise(resolve => setTimeout(resolve, ms));
 
 
 router.post("/esp8266data", (req, res) => {
@@ -45,24 +48,24 @@ router.post("/esp8266data", (req, res) => {
     water_level_tank_1 = req.body.water_level_tank_1;
     water_level_tank_2 = req.body.water_level_tank_2;
     water_level_tank_3 = req.body.water_level_tank_3;
-    pump_1_status = 1 - req.body.pump_1_status;
-    pump_2_status = 1 - req.body.pump_2_status;
+    pump_1_status = 1 - req.body.pump_1_status ? "ON" : "OFF";
+    pump_2_status = 1 - req.body.pump_2_status ? "ON" : "OFF";
     wifi_ssid = req.body.wifi_ssid;
 
     if (water_level_tank_1 > UPPER_THRESH_TANK_1 - 0.15) {
-        pump_1_command = "WT_OFF";
+        pump_1_command = "OFF";
     }
 
     if (water_level_tank_2 > UPPER_THRESH_TANK_2 - 0.15) {
-        pump_2_command = "WT_OFF";
+        pump_2_command = "OFF";
     }
 
     // Print to screen: 
     console.log(" Tank #1 level is: ", water_level_tank_1);
     console.log(" Tank #2 level is: ", water_level_tank_2);
     // console.log(" Tank #3 level is: ", water_level_tank_3);
-    console.log(" Pump #1  is: ", pump_1_status ? "ON" : "OFF");
-    console.log(" Pump #2  is: ", pump_2_status ? "ON" : "OFF");
+    console.log(" Pump #1  is: ", pump_1_status);
+    console.log(" Pump #2  is: ", pump_2_status);
     console.log(" Esp8266 is connected to : ", wifi_ssid);
     console.log(" Pump #1  command is: ", pump_1_command);
     console.log(" Pump #2  command is: ", pump_2_command);
@@ -191,44 +194,85 @@ router.get("/time", (req, res) => {
     });
 });
 
-router.post("/commands", (req, res) => {
+router.post("/commands", async (req, res) => {
 
     let msg = "";
     let success = true;
+    let status = "OFF"
+    let num_checks = 30
 
     d = new Date();
     let curr_time = d.getTime();
     let time_diff_in_secs = Math.round((curr_time - time_of_last_esp8266_ping) / 1000);
     if (time_diff_in_secs > 15) {
         success = false;
-        msg += " Esp8266 board appears to NOT be connected to WiFi";
+        msg += " Esp8266 board appears to NOT be connected to WiFi. Status may be invalid!";
         console.log(" Esp8266 not connected!")
     } else {
-
         if (req.body.pump_1) {
             console.log(' ---> Received command for pump #1: ', req.body.pump_1);
-            if (req.body.pump_1 == "WT_ON" && water_level_tank_1 > UPPER_THRESH_TANK_1 - 0.15) {
+            if (req.body.pump_1 == "ON" && water_level_tank_1 > UPPER_THRESH_TANK_1 - 0.15) {
                 success = false;
-                msg += `Pump #1 command failed. Water level is above threshold of ${Math.floor(UPPER_THRESH_TANK_1)} \n`;
+                msg += `Pump #1 command failed. Water level is above threshold of ${Math.floor(UPPER_THRESH_TANK_1)}`;
             } else {
                 pump_1_command = req.body.pump_1;
-                msg += "Pump #1 command set to " + pump_1_command + " \n";
+                let ctr = 0
+                while (ctr < num_checks) {
+                    stats = pump_1_status
+                    if (pump_1_command == pump_1_status) {
+                        break;
+                    }
+
+                    await sleep(500)
+                    ctr++
+                }
+
+                if (ctr < num_checks) {
+                    msg += `Successfully set Pump #1 to ${pump_1_command} `;
+                }
+                else {
+                    success = false
+                    msg += ` Failed to set pump #1 to  ${pump_1_command} `;
+                }
+
+                pump_1_command = pump_1_status
+
             }
         }
 
         if (req.body.pump_2) {
             console.log(' ---> Received command for pump #2: ', req.body.pump_2);
-            if (req.body.pump_2 == "WT_ON" && water_level_tank_2 > UPPER_THRESH_TANK_2 - 0.15) {
+            if (req.body.pump_2 == "ON" && water_level_tank_2 > UPPER_THRESH_TANK_2 - 0.15) {
                 success = false;
-                msg += `Pump #2 command failed. Water level is above threshold of ${Math.floor(UPPER_THRESH_TANK_2)} \n`;
+                msg += `Failed to set pump #2 to ${req.body.pump_2}. Water level is above threshold of ${Math.floor(UPPER_THRESH_TANK_2)} `;
             } else {
                 pump_2_command = req.body.pump_2;
-                msg += "Pump #2 command set to " + pump_2_command + " \n";
+                let ctr = 0
+                while (ctr < num_checks) {
+                    status = pump_2_status
+                    if (pump_2_command == pump_2_status) {
+                        break;
+                    }
+
+                    await sleep(500)
+                    ctr++
+                }
+
+                if (ctr < num_checks) {
+                    msg += `Successfully set Pump #2 to ${pump_2_command} `;
+                }
+                else {
+                    success = false
+                    msg += ` Failed to set pump #2 to ${pump_2_command} `;
+                }
+
+                pump_2_command = pump_2_status
+
             }
         }
     }
 
-    res.status(200).json({ success, msg });
+    res.status(200).json({ success, msg, status });
 });
 
 module.exports = router;

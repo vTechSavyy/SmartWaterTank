@@ -2,10 +2,6 @@ package com.example.smartwatertank;
 
 
 import android.app.Dialog;
-import android.app.Notification;
-import android.app.NotificationChannel;
-import android.app.NotificationManager;
-import android.app.PendingIntent;
 import android.app.TimePickerDialog;
 import android.content.Intent;
 import android.graphics.Color;
@@ -36,9 +32,12 @@ import android.widget.TextView;
 import android.widget.TimePicker;
 
 import com.android.volley.Request;
+import com.android.volley.RequestQueue;
 import com.android.volley.Response;
 import com.android.volley.VolleyError;
 import com.android.volley.toolbox.JsonObjectRequest;
+import com.android.volley.toolbox.StringRequest;
+import com.android.volley.toolbox.Volley;
 
 import org.json.JSONException;
 import org.json.JSONObject;
@@ -56,8 +55,9 @@ public class SupervisorFragment extends Fragment {
     public static final String FRAG_NAME_KEY = "FragmentName";
     private static final String TAG = "SupervisorFragment";
 
-//    private final String SERVER_URL = "http://192.168.29.224:3000";
+//    private final String SERVER_URL = "http://192.168.1.21:3000";
     private final String SERVER_URL = "https://plum-cockroach-gown.cyclic.app";
+//    private final String SERVER_URL = "https://pereira-smart-water-tank.onrender.com";
 
     private final String STATUS_URL = SERVER_URL + "/api/status";
     private final String ACTUATION_URL = SERVER_URL + "/api/commands";
@@ -66,7 +66,7 @@ public class SupervisorFragment extends Fragment {
     private JsonObjectRequest pumpActuationRequest;
 
     private Handler UIThreaHandler;
-    private static int statusInterval = 4000;  // milliseconds
+    private static int statusInterval = 10000;  // milliseconds
 
     private TextView mTitle;
     private TextView mAutoStartTimeDisplay;
@@ -152,7 +152,7 @@ public class SupervisorFragment extends Fragment {
                 final String idxStr = String.valueOf(getArguments().getInt(FRAG_INDEX_KEY));
                 JSONObject cmd_req = new JSONObject(new HashMap<String, String>() {
                     {
-                        put("pump_" + idxStr, isChecked ? "WT_ON" : "WT_OFF");
+                        put("pump_" + idxStr, isChecked ? "ON" : "OFF");
                     }
                 });
 
@@ -166,8 +166,29 @@ public class SupervisorFragment extends Fragment {
                         public void onResponse(JSONObject response) {
                                 Log.i(TAG, "onResponse: Pump actuation. Response completed! ");
                                 mSwitchRequestProgressBar.setVisibility(View.INVISIBLE);
-                                mTankSwitch.setText(R.string.tank_switch_on_txt);
-                                mTankSwitch.setBackgroundColor(Color.argb(50,0,255, 0));
+                                try {
+                                    String res_status = response.getString("status");
+                                    if (res_status.equals("ON"))
+                                    {
+                                        mTankSwitch.setText(R.string.tank_switch_on_txt);
+                                        mTankSwitch.setBackgroundColor(Color.argb(50,0,255, 0));
+                                    }
+                                    else if (res_status.equals("OFF"))
+                                    {
+                                        mTankSwitch.setText(R.string.tank_switch_off_txt);
+                                        mTankSwitch.setBackgroundColor(Color.argb(50,255,0, 0));
+                                    }
+                                    else
+                                    {
+                                        Log.i(TAG, " Welp!");
+                                    }
+
+                                }
+                                catch (JSONException e){
+                                    Log.e(TAG, "onResponse: JSON Exception " + e.toString() );
+                                }
+
+
                         }
                     }, new Response.ErrorListener() {
                         @Override
@@ -214,13 +235,14 @@ public class SupervisorFragment extends Fragment {
         String titleStr = "A-14" + idxStr;
         mTitle.setText(titleStr);
 
-        tankStatusRequest = new JsonObjectRequest(Request.Method.GET, STATUS_URL, null, new Response.Listener<JSONObject>() {
+        tankStatusRequest = new JsonObjectRequest(Request.Method.GET, STATUS_URL, null,  new Response.Listener<JSONObject>() {
             @Override
             public void onResponse(JSONObject response) {
-                Log.i(TAG, " Received status update");
+//                Log.i(TAG, " Received status update");
                 try
                 {
                     String level = response.getString("water_level_tank_" + idxStr);
+                    Log.i(" Level is: ", level);
                     mTankLevel.setText(level + " cm");
                     GradientDrawable d1 = (GradientDrawable) ContextCompat.getDrawable(getActivity(), R.drawable.water_level_background_1);
                     d1.setGradientCenter(0.0f, (100.0f - Float.parseFloat(level)) / 100.0f);

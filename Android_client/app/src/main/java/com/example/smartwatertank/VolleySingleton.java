@@ -36,6 +36,7 @@ public class VolleySingleton {
 
     public <T> void addToRequestQueue(Request<T> req) {
 //        Log.i("Singleton", " Actually adding request!");
+//        req.setShouldCache(false);
         getRequestQueue().add(req);
     }
 
