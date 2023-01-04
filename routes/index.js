@@ -199,12 +199,12 @@ router.post("/commands", async (req, res) => {
     let msg = "";
     let success = true;
     let status = "OFF"
-    let num_checks = 30
+    let num_checks = 20
 
     d = new Date();
     let curr_time = d.getTime();
     let time_diff_in_secs = Math.round((curr_time - time_of_last_esp8266_ping) / 1000);
-    if (time_diff_in_secs > 15) {
+    if (time_diff_in_secs > 30) {
         success = false;
         msg += " Esp8266 board appears to NOT be connected to WiFi. Status may be invalid!";
         console.log(" Esp8266 not connected!")

@@ -30,14 +30,15 @@ import android.widget.ProgressBar;
 import android.widget.Switch;
 import android.widget.TextView;
 import android.widget.TimePicker;
+import android.widget.Toast;
 
+import com.android.volley.DefaultRetryPolicy;
 import com.android.volley.Request;
 import com.android.volley.RequestQueue;
 import com.android.volley.Response;
 import com.android.volley.VolleyError;
 import com.android.volley.toolbox.JsonObjectRequest;
-import com.android.volley.toolbox.StringRequest;
-import com.android.volley.toolbox.Volley;
+
 
 import org.json.JSONException;
 import org.json.JSONObject;
@@ -66,7 +67,7 @@ public class SupervisorFragment extends Fragment {
     private JsonObjectRequest pumpActuationRequest;
 
     private Handler UIThreaHandler;
-    private static int statusInterval = 10000;  // milliseconds
+    private static int statusInterval = 20000;  // milliseconds
 
     private TextView mTitle;
     private TextView mAutoStartTimeDisplay;
@@ -156,74 +157,58 @@ public class SupervisorFragment extends Fragment {
                     }
                 });
 
+                pumpActuationRequest = new JsonObjectRequest(Request.Method.POST, ACTUATION_URL, cmd_req, new Response.Listener<JSONObject>() {
+                    @Override
+                    public void onResponse(JSONObject response) {
+                        Log.i(TAG, "onResponse: Pump actuation. Response completed! ");
+                        mSwitchRequestProgressBar.setVisibility(View.INVISIBLE);
+                        try {
+                            String res_status = response.getString("status");
+                            Log.i(TAG, response.getString("msg"));
+                            Toast.makeText(getActivity(), response.getString("msg"), Toast.LENGTH_LONG).show();
+                            if (res_status.equals("ON"))
+                            {
+                                mTankSwitch.setChecked(true);
+                                mTankSwitch.setText(R.string.tank_switch_on_txt);
+                                mTankSwitch.setBackgroundColor(Color.argb(50,0,255, 0));
+                            }
+                            else if (res_status.equals("OFF"))
+                            {
+                                mTankSwitch.setChecked(false);
+                                mTankSwitch.setText(R.string.tank_switch_off_txt);
+                                mTankSwitch.setBackgroundColor(Color.argb(50,255,0, 0));
+                            }
+                            else
+                            {
+                                Log.i(TAG, " Welp!");
+                            }
+
+                        }
+                        catch (JSONException e){
+                            Log.e(TAG, "onResponse: JSON Exception " + e.toString() );
+                        }
+
+
+                    }
+                }, new Response.ErrorListener() {
+                    @Override
+                    public void onErrorResponse(VolleyError error) {
+                        Log.e(TAG, "onErrorResponse: " + error.toString() );
+                        mSwitchRequestProgressBar.setVisibility(View.INVISIBLE);
+                    }
+                });
+
+                pumpActuationRequest.setRetryPolicy(new DefaultRetryPolicy(15000,
+                       2,
+                        DefaultRetryPolicy.DEFAULT_BACKOFF_MULT));
+
+                pumpActuationRequest.setTag(TAG);
+
                 // Send http request to server:
                 // Start progressbar:
                 // Stop progressbar on response from HTTP req:
-                if (isChecked) {
-                    mSwitchRequestProgressBar.setVisibility(View.VISIBLE);
-                    pumpActuationRequest = new JsonObjectRequest(Request.Method.POST, ACTUATION_URL, cmd_req, new Response.Listener<JSONObject>() {
-                        @Override
-                        public void onResponse(JSONObject response) {
-                                Log.i(TAG, "onResponse: Pump actuation. Response completed! ");
-                                mSwitchRequestProgressBar.setVisibility(View.INVISIBLE);
-                                try {
-                                    String res_status = response.getString("status");
-                                    if (res_status.equals("ON"))
-                                    {
-                                        mTankSwitch.setText(R.string.tank_switch_on_txt);
-                                        mTankSwitch.setBackgroundColor(Color.argb(50,0,255, 0));
-                                    }
-                                    else if (res_status.equals("OFF"))
-                                    {
-                                        mTankSwitch.setText(R.string.tank_switch_off_txt);
-                                        mTankSwitch.setBackgroundColor(Color.argb(50,255,0, 0));
-                                    }
-                                    else
-                                    {
-                                        Log.i(TAG, " Welp!");
-                                    }
-
-                                }
-                                catch (JSONException e){
-                                    Log.e(TAG, "onResponse: JSON Exception " + e.toString() );
-                                }
-
-
-                        }
-                    }, new Response.ErrorListener() {
-                        @Override
-                        public void onErrorResponse(VolleyError error) {
-                            Log.e(TAG, "onErrorResponse: " + error.toString() );
-                        }
-                    });
-
-                    pumpActuationRequest.setTag(TAG);
-                    VolleySingleton.getInstance(getActivity()).addToRequestQueue(pumpActuationRequest);
-
-                }
-                else {
-                    mSwitchRequestProgressBar.setVisibility(View.VISIBLE);
-
-                    pumpActuationRequest = new JsonObjectRequest(Request.Method.POST, ACTUATION_URL, cmd_req, new Response.Listener<JSONObject>() {
-                        @Override
-                        public void onResponse(JSONObject response) {
-                            Log.i(TAG, "onResponse: Pump actuation. Response completed! ");
-                            mSwitchRequestProgressBar.setVisibility(View.INVISIBLE);
-                            mTankSwitch.setText(R.string.tank_switch_off_txt);
-                            mTankSwitch.setBackgroundColor(Color.argb(50,255,0, 0));
-                        }
-                    }, new Response.ErrorListener() {
-                        @Override
-                        public void onErrorResponse(VolleyError error) {
-                            Log.e(TAG, "onErrorResponse: " + error.toString() );
-                        }
-                    });
-
-                    pumpActuationRequest.setTag(TAG);
-                    VolleySingleton.getInstance(getActivity()).addToRequestQueue(pumpActuationRequest);
-                }
-
-
+                mSwitchRequestProgressBar.setVisibility(View.VISIBLE);
+                VolleySingleton.getInstance(getActivity()).addToRequestQueue(pumpActuationRequest);
             }
         });
         return rootView;
@@ -248,16 +233,16 @@ public class SupervisorFragment extends Fragment {
                     d1.setGradientCenter(0.0f, (100.0f - Float.parseFloat(level)) / 100.0f);
                     SupervisorFragment.this.mTankLevel.setBackground(d1);
 
-                    int pump_status = response.getInt("pump_" + idxStr + "_status");
+                    String pump_status = response.getString("pump_" + idxStr + "_status");
 
-                    if (pump_status == 1) {
+                    if (pump_status.equals("ON")) {
                         mTankSwitch.setChecked(true);
                         mTankSwitch.setText(R.string.tank_switch_on_txt);
                         mTankSwitch.setBackgroundColor(Color.argb(50, 0, 255, 0));
                         mSwitchRequestProgressBar.setVisibility(View.INVISIBLE);
                     }
 
-                    if (pump_status == 0) {
+                    if (pump_status.equals("OFF")) {
                         mTankSwitch.setChecked(false);
                         mTankSwitch.setText(R.string.tank_switch_off_txt);
                         mTankSwitch.setBackgroundColor(Color.argb(50, 255, 0, 0));

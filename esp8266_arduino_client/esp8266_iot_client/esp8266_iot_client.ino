@@ -213,7 +213,7 @@ void setup() {
   digitalWrite(PUMP_2_PIN, HIGH);
 
   data_transmission_thread->onRun(transmissionCallback);
-  data_transmission_thread->setInterval(2000);  // milliseconds
+  data_transmission_thread->setInterval(1000);  // milliseconds
 
   actuation_command_thread->onRun(actutationCommandCallback);
   actuation_command_thread->setInterval(1000);  // milliseconds
@@ -249,12 +249,12 @@ void loop() {
     actuation_command_thread->run(); 
   
   // Set sample rate to ~100Hz: 
-  delay(100);
+  delay(500);
 
   // Print the water levels for debugging
-  Serial.print("Pump #1 status is");
+  Serial.print("Pump #1 status is: ");
   Serial.println(digitalRead(PUMP_1_PIN));
-  Serial.print("Pump #2 status is");
+  Serial.print("Pump #2 status is: ");
   Serial.println(digitalRead(PUMP_2_PIN));
 //  Serial.print(" Water level tank #1 is ");
 //  Serial.println(water_level_tank_1);
