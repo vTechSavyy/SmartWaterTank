@@ -1,9 +1,5 @@
 package com.example.smartwatertank;
 
-
-import android.app.Dialog;
-import android.app.TimePickerDialog;
-import android.content.Intent;
 import android.graphics.Color;
 import android.graphics.drawable.GradientDrawable;
 import android.os.Build;
@@ -11,30 +7,22 @@ import android.os.Bundle;
 
 import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
-import androidx.core.app.NotificationCompat;
-import androidx.core.app.NotificationManagerCompat;
 import androidx.core.content.ContextCompat;
-import androidx.fragment.app.DialogFragment;
 import androidx.fragment.app.Fragment;
 
 import android.os.Handler;
-import android.text.format.DateFormat;
 import android.util.Log;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
-import android.widget.CheckBox;
 import android.widget.CompoundButton;
-import android.widget.ImageButton;
 import android.widget.ProgressBar;
 import android.widget.Switch;
 import android.widget.TextView;
-import android.widget.TimePicker;
 import android.widget.Toast;
 
 import com.android.volley.DefaultRetryPolicy;
 import com.android.volley.Request;
-import com.android.volley.RequestQueue;
 import com.android.volley.Response;
 import com.android.volley.VolleyError;
 import com.android.volley.toolbox.JsonObjectRequest;
@@ -43,7 +31,6 @@ import com.android.volley.toolbox.JsonObjectRequest;
 import org.json.JSONException;
 import org.json.JSONObject;
 
-import java.util.Calendar;
 import java.util.HashMap;
 
 
@@ -56,8 +43,8 @@ public class SupervisorFragment extends Fragment {
     public static final String FRAG_NAME_KEY = "FragmentName";
     private static final String TAG = "SupervisorFragment";
 
-//    private final String SERVER_URL = "http://192.168.1.21:3000";
-    private final String SERVER_URL = "https://plum-cockroach-gown.cyclic.app";
+    private final String SERVER_URL = "http://192.168.29.224:3000";
+//    private final String SERVER_URL = "https://plum-cockroach-gown.cyclic.app";
 //    private final String SERVER_URL = "https://pereira-smart-water-tank.onrender.com";
 
     private final String STATUS_URL = SERVER_URL + "/api/status";
@@ -70,21 +57,9 @@ public class SupervisorFragment extends Fragment {
     private static int statusInterval = 20000;  // milliseconds
 
     private TextView mTitle;
-    private TextView mAutoStartTimeDisplay;
     private TextView mTankLevel;
-    private CheckBox mAutoStartCheckBox;
-    private ImageButton mAutoStartEditButton;
     private Switch mTankSwitch;
     private ProgressBar mSwitchRequestProgressBar;
-
-
-    private TimePickerDialog.OnTimeSetListener mOnTimeSetListener = new TimePickerDialog.OnTimeSetListener() {
-        @Override
-        public void onTimeSet(TimePicker view, int hourOfDay, int minute) {
-            String timeStr = hourOfDay + " : " + minute;
-            mAutoStartTimeDisplay.setText(timeStr);
-        }
-    };
 
     public SupervisorFragment() {
         // Required empty public constructor
@@ -105,42 +80,9 @@ public class SupervisorFragment extends Fragment {
     public View onCreateView(LayoutInflater inflater, ViewGroup container,
                              Bundle savedInstanceState) {
         // Inflate the layout for this fragment
-
         View rootView =  inflater.inflate(R.layout.fragment_supervisor, container, false);
 
         mTitle = rootView.findViewById(R.id.textview_title);
-        mAutoStartEditButton = rootView.findViewById(R.id.auto_start_edit_button);
-        mAutoStartEditButton.setOnClickListener(new View.OnClickListener() {
-            @Override
-            public void onClick(View v) {
-                DialogFragment mTimePickerFragment = new AutoStartTimePicker(mOnTimeSetListener);
-                mTimePickerFragment.show(getActivity().getSupportFragmentManager(), "timePicker");
-            }
-        });
-
-        mAutoStartTimeDisplay = rootView.findViewById(R.id.auto_start_time_display);
-        // TODO: 5/19/20 : Get initial value of AutoStartTimeDisplay either from Shared Preferences or from Server 
-
-        mAutoStartCheckBox = rootView.findViewById(R.id.auto_start_checkbox);
-        mAutoStartCheckBox.setOnCheckedChangeListener(new CompoundButton.OnCheckedChangeListener() {
-            @Override
-            public void onCheckedChanged(CompoundButton buttonView, boolean isChecked) {
-                
-                if (isChecked) {
-                    mAutoStartTimeDisplay.setVisibility(View.VISIBLE);
-                    mAutoStartEditButton.setVisibility(View.VISIBLE);
-
-                }
-                else {
-                    mAutoStartTimeDisplay.setVisibility(View.INVISIBLE);
-                    mAutoStartEditButton.setVisibility(View.INVISIBLE);
-                    mSwitchRequestProgressBar.setVisibility(View.INVISIBLE);
-                    mTankSwitch.setText(R.string.tank_switch_off_txt);
-                    mTankSwitch.setBackgroundColor(Color.argb(50,255,0, 0));
-                }
-                
-            }
-        });
 
         mTankLevel = rootView.findViewById(R.id.tank_level);
         mSwitchRequestProgressBar = rootView.findViewById(R.id.progress_bar_switch);
@@ -164,7 +106,8 @@ public class SupervisorFragment extends Fragment {
                         mSwitchRequestProgressBar.setVisibility(View.INVISIBLE);
                         try {
                             String res_status = response.getString("status");
-                            Log.i(TAG, response.getString("msg"));
+                            Log.i(TAG, "Msg is " + response.getString("msg"));
+                            Log.i(TAG, " Status is: " + response.getString("status"));
                             Toast.makeText(getActivity(), response.getString("msg"), Toast.LENGTH_LONG).show();
                             if (res_status.equals("ON"))
                             {
@@ -207,8 +150,12 @@ public class SupervisorFragment extends Fragment {
                 // Send http request to server:
                 // Start progressbar:
                 // Stop progressbar on response from HTTP req:
-                mSwitchRequestProgressBar.setVisibility(View.VISIBLE);
-                VolleySingleton.getInstance(getActivity()).addToRequestQueue(pumpActuationRequest);
+                if (buttonView.isPressed())
+                {
+                    mSwitchRequestProgressBar.setVisibility(View.VISIBLE);
+                    VolleySingleton.getInstance(getActivity()).addToRequestQueue(pumpActuationRequest);
+                }
+
             }
         });
         return rootView;
@@ -227,7 +174,6 @@ public class SupervisorFragment extends Fragment {
                 try
                 {
                     String level = response.getString("water_level_tank_" + idxStr);
-                    Log.i(" Level is: ", level);
                     mTankLevel.setText(level + " cm");
                     GradientDrawable d1 = (GradientDrawable) ContextCompat.getDrawable(getActivity(), R.drawable.water_level_background_1);
                     d1.setGradientCenter(0.0f, (100.0f - Float.parseFloat(level)) / 100.0f);
@@ -278,36 +224,9 @@ public class SupervisorFragment extends Fragment {
         stopStatusUpdates();
     }
 
-
-    public static class AutoStartTimePicker extends DialogFragment {
-
-        private TimePickerDialog.OnTimeSetListener mListener;
-
-        AutoStartTimePicker(TimePickerDialog.OnTimeSetListener listener) {
-            mListener = listener;
-        }
-
-        @NonNull
-        @Override
-        public Dialog onCreateDialog(@Nullable Bundle savedInstanceState) {
-            super.onCreateDialog(savedInstanceState);
-            // Use the current time as the default values for the picker
-            final Calendar c = Calendar.getInstance();
-            int hour = c.get(Calendar.HOUR_OF_DAY);
-            int minute = c.get(Calendar.MINUTE);
-
-            // Create a new instance of TimePickerDialog and return it
-            return new android.app.TimePickerDialog(getActivity(), mListener, hour, minute,
-                    DateFormat.is24HourFormat(getActivity()));
-
-        }
-
-    }
-
     Runnable mStatusChecker = new Runnable() {
         @Override
         public void run() {
-//            Log.i(TAG, " Adding volley request to queue");
             VolleySingleton.getInstance(getActivity()).addToRequestQueue(tankStatusRequest);
             UIThreaHandler.postDelayed(mStatusChecker, statusInterval);
         }

@@ -66,46 +66,5 @@
         app:layout_constraintStart_toStartOf="parent"
         app:layout_constraintTop_toBottomOf="@+id/tank_switch" />
 
-    <CheckBox
-        android:id="@+id/auto_start_checkbox"
-        android:layout_width="wrap_content"
-        android:layout_height="wrap_content"
-        android:layout_marginStart="32dp"
-        android:layout_marginLeft="32dp"
-        android:layout_marginTop="24dp"
-        android:text="@string/auto_start_checkbox_label"
-        android:textSize="18sp"
-        android:typeface="serif"
-        app:layout_constraintStart_toStartOf="parent"
-        app:layout_constraintTop_toBottomOf="@+id/tank_level" />
-
-    <EditText
-        android:id="@+id/auto_start_time_display"
-        android:layout_width="0dp"
-        android:layout_height="wrap_content"
-        android:layout_marginStart="80dp"
-        android:layout_marginLeft="80dp"
-        android:layout_marginTop="16dp"
-        android:layout_marginEnd="80dp"
-        android:layout_marginRight="80dp"
-        android:ems="10"
-        android:inputType="time"
-        android:textSize="24sp"
-        android:visibility="invisible"
-        app:layout_constraintEnd_toEndOf="parent"
-        app:layout_constraintStart_toStartOf="parent"
-        app:layout_constraintTop_toBottomOf="@+id/auto_start_checkbox" />
-
-    <ImageButton
-        android:id="@+id/auto_start_edit_button"
-        android:layout_width="wrap_content"
-        android:layout_height="wrap_content"
-        android:src="@android:drawable/ic_menu_edit"
-        android:visibility="invisible"
-        app:layout_constraintEnd_toEndOf="parent"
-        app:layout_constraintHorizontal_bias="0.333"
-        app:layout_constraintStart_toEndOf="@+id/auto_start_time_display"
-        app:layout_constraintTop_toTopOf="@+id/auto_start_time_display" />
-
 
 </androidx.constraintlayout.widget.ConstraintLayout>

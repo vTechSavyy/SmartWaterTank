@@ -47,7 +47,6 @@ router.post("/esp8266data", (req, res) => {
 
     water_level_tank_1 = req.body.water_level_tank_1;
     water_level_tank_2 = req.body.water_level_tank_2;
-    water_level_tank_3 = req.body.water_level_tank_3;
     pump_1_status = 1 - req.body.pump_1_status ? "ON" : "OFF";
     pump_2_status = 1 - req.body.pump_2_status ? "ON" : "OFF";
     wifi_ssid = req.body.wifi_ssid;
@@ -63,10 +62,8 @@ router.post("/esp8266data", (req, res) => {
     // Print to screen: 
     console.log(" Tank #1 level is: ", water_level_tank_1);
     console.log(" Tank #2 level is: ", water_level_tank_2);
-    // console.log(" Tank #3 level is: ", water_level_tank_3);
     console.log(" Pump #1  is: ", pump_1_status);
     console.log(" Pump #2  is: ", pump_2_status);
-    console.log(" Esp8266 is connected to : ", wifi_ssid);
     console.log(" Pump #1  command is: ", pump_1_command);
     console.log(" Pump #2  command is: ", pump_2_command);
     console.log(" --------------------------------------- ");
@@ -204,10 +201,9 @@ router.post("/commands", async (req, res) => {
     d = new Date();
     let curr_time = d.getTime();
     let time_diff_in_secs = Math.round((curr_time - time_of_last_esp8266_ping) / 1000);
-    if (time_diff_in_secs > 30) {
+    if (time_diff_in_secs > 60) {
         success = false;
         msg += " Esp8266 board appears to NOT be connected to WiFi. Status may be invalid!";
-        console.log(" Esp8266 not connected!")
     } else {
         if (req.body.pump_1) {
             console.log(' ---> Received command for pump #1: ', req.body.pump_1);
@@ -215,10 +211,11 @@ router.post("/commands", async (req, res) => {
                 success = false;
                 msg += `Pump #1 command failed. Water level is above threshold of ${Math.floor(UPPER_THRESH_TANK_1)}`;
             } else {
+
                 pump_1_command = req.body.pump_1;
                 let ctr = 0
                 while (ctr < num_checks) {
-                    stats = pump_1_status
+                    status = pump_1_status
                     if (pump_1_command == pump_1_status) {
                         break;
                     }
