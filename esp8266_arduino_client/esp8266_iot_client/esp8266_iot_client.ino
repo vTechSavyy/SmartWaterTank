@@ -37,7 +37,8 @@ float water_level_tank_1;
 float water_level_tank_2;
 
 // Server names and URL's:
-String SERVER_BASE_URL     = "https://plum-cockroach-gown.cyclic.app";    // Deployment server//
+//String SERVER_BASE_URL     = "https://plum-cockroach-gown.cyclic.app";    // Deployment server///
+String SERVER_BASE_URL     = "https://pereira-smart-water-tank.onrender.com";    // Deployment server//
 //String SERVER_BASE_URL   = "https://192.168.1.21:3000";                  // Local testing server//
 
 
@@ -144,14 +145,17 @@ void actutationCommandCallback() {
       // Making the request
       String COMMAND_GET_URL = SERVER_BASE_URL + "/api/commands";
       Response response = fetch(COMMAND_GET_URL.c_str(), options);
-//      Serial.println(response);/
+//      Serial.println(response.body);/
+      int length = strlen(response.body.c_str());//
+      String trimmed_res_body = response.body.substring(2,length-3);
+//      Serial.println(trimmed_res_body);/
 
       const int capacity = JSON_OBJECT_SIZE(3);
       StaticJsonDocument<3*capacity> commands;
 
         
        // Deserialize the JSON document
-      DeserializationError error = deserializeJson(commands, response.body);
+      DeserializationError error = deserializeJson(commands, trimmed_res_body);
 
       // Test if parsing succeeds.
       if (error) {
@@ -252,10 +256,10 @@ void loop() {
   delay(500);
 
   // Print the water levels for debugging
-  Serial.print("Pump #1 status is: ");
-  Serial.println(digitalRead(PUMP_1_PIN));
-  Serial.print("Pump #2 status is: ");
-  Serial.println(digitalRead(PUMP_2_PIN));
+//  Serial.print("Pump #1 status is: ");
+//  Serial.println(digitalRead(PUMP_1_PIN));
+//  Serial.print("Pump #2 status is: ");
+//  Serial.println(digitalRead(PUMP_2_PIN));
 //  Serial.print(" Water level tank #1 is ");
 //  Serial.println(water_level_tank_1);
 //

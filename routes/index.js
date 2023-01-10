@@ -196,7 +196,7 @@ router.post("/commands", async (req, res) => {
     let msg = "";
     let success = true;
     let status = "OFF"
-    let num_checks = 20
+    let num_checks = 30
 
     d = new Date();
     let curr_time = d.getTime();

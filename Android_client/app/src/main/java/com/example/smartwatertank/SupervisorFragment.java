@@ -43,9 +43,9 @@ public class SupervisorFragment extends Fragment {
     public static final String FRAG_NAME_KEY = "FragmentName";
     private static final String TAG = "SupervisorFragment";
 
-    private final String SERVER_URL = "http://192.168.29.224:3000";
+//    private final String SERVER_URL = "http://192.168.0.192:3000";
 //    private final String SERVER_URL = "https://plum-cockroach-gown.cyclic.app";
-//    private final String SERVER_URL = "https://pereira-smart-water-tank.onrender.com";
+    private final String SERVER_URL = "https://pereira-smart-water-tank.onrender.com";
 
     private final String STATUS_URL = SERVER_URL + "/api/status";
     private final String ACTUATION_URL = SERVER_URL + "/api/commands";
